@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
@@ -10,16 +10,13 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ---------- MIDDLEWARE ---------- */
 app.use(cors());
 app.use(express.json());
 
-/* ---------- ROOT ROUTE ---------- */
 app.get("/", (req, res) => {
     res.send("ResumeCraft AI Backend is running 🚀");
 });
 
-/* ---------- ENV VALIDATION ---------- */
 if (!process.env.GEMINI_API_KEY) {
     console.error("❌ GEMINI_API_KEY is missing");
 }
@@ -28,10 +25,8 @@ if (!process.env.MONGO_URL) {
     console.error("❌ MONGO_URL is missing");
 }
 
-/* ---------- GEMINI SETUP ---------- */
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-/* ---------- AI GENERATE ROUTE ---------- */
 app.post("/generate", async (req, res) => {
     try {
         const { prompt } = req.body;
@@ -43,7 +38,7 @@ app.post("/generate", async (req, res) => {
         }
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash"   // ✅ UPDATED MODEL
+            model: "gemini-1.5-flash"   
         });
 
         const result = await model.generateContent(prompt);
@@ -61,7 +56,7 @@ app.post("/generate", async (req, res) => {
     }
 });
 
-/* ---------- MONGODB CONNECTION ---------- */
+
 mongoose
     .connect(process.env.MONGO_URL)
     .then(() => console.log("✅ MongoDB Connected"))
@@ -69,7 +64,7 @@ mongoose
         console.error("❌ MongoDB Connection Error:", err.message);
     });
 
-/* ---------- SIGNUP ROUTE ---------- */
+
 app.post("/signup", async (req, res) => {
     try {
         const { firstName, lastName, email, provider } = req.body;
@@ -80,6 +75,7 @@ app.post("/signup", async (req, res) => {
 
         let user = await User.findOne({ email });
 
+        
         if (!user) {
             user = new User({
                 firstName,
@@ -88,14 +84,25 @@ app.post("/signup", async (req, res) => {
                 provider,
                 lastLogin: Date.now()
             });
+
             await user.save();
-        } else {
-            user.lastLogin = Date.now();
-            await user.save();
+
+            
+
+            return res.status(201).json({
+                message: "New user created",
+                isNewUser: true,
+                user
+            });
         }
 
-        res.status(200).json({
-            message: "User saved successfully",
+        
+        user.lastLogin = Date.now();
+        await user.save();
+
+        return res.status(200).json({
+            message: "User already exists",
+            isNewUser: false,
             user
         });
 
@@ -105,7 +112,8 @@ app.post("/signup", async (req, res) => {
     }
 });
 
-/* ---------- START SERVER ---------- */
+
+
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
